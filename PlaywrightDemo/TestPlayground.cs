@@ -5,10 +5,8 @@ using Xunit;
 
 namespace PlaywrightDemo
 {
-    public class TestPlayground : IDisposable
+    public class TestPlayground : BaseTest, IDisposable
     {
-        public IBrowser Browser;
-        private string _PageUrl = "http://www.uitestingplayground.com/";
         public TestPlayground()
         {
             if (Browser == null)
@@ -17,14 +15,6 @@ namespace PlaywrightDemo
             }
         }
 
-        private async Task<IBrowser> GetBrowserAsync()
-        {
-            await Playwright.InstallAsync();
-            var playwright = await Playwright.CreateAsync();
-            return await playwright.Chromium.LaunchAsync(headless: true);
-        }
-
-        public IPage page;
         public void Dispose()
         {
             page?.CloseAsync();
@@ -37,8 +27,8 @@ namespace PlaywrightDemo
             var context = await Browser.NewContextAsync();
             page = await context.NewPageAsync();
             await page.GoToAsync(_PageUrl);
-            await page.ClickAsync("//a[text()='Scrollbars']");
-            await page.ClickAsync("#hidingButton");
+            await page.ClickAsync(Links.Scrollbars);
+            await page.ClickAsync(ScrollBars.TargetButton);
 
         }
 
@@ -48,28 +38,28 @@ namespace PlaywrightDemo
             var context = await Browser.NewContextAsync();
             page = await context.NewPageAsync();
             await page.GoToAsync(_PageUrl);
-            await page.ClickAsync("//a[text()='Progress Bar']");
-            await page.ClickAsync("#startButton");
-            await page.GetInnerTextAsync("#progressBar[aria-valuenow='75']");
-            await page.ClickAsync("#stopButton");
-            var outcome = await page.GetInnerTextAsync("#result");
+            await page.ClickAsync(Links.ProgressBar);
+            await page.ClickAsync(ProgressBar.StartButton);
+            await page.GetInnerTextAsync(ProgressBar.TargetValue);
+            await page.ClickAsync(ProgressBar.StopButton);
+            var outcome = await page.GetInnerTextAsync(ProgressBar.Timer);
 
         }
 
 
         [Fact]
-        public async Task DynamicTable()
+        public async Task DynamicTableTest()
         {
             var context = await Browser.NewContextAsync();
             page = await context.NewPageAsync();
             await page.GoToAsync(_PageUrl);
-            await page.ClickAsync("//a[text()='Dynamic Table']");
+            await page.ClickAsync(Links.DynamicTable);
 
-            var columns = await page.GetInnerHtmlAsync("//span[text()='CPU']/..");
+            var columns = await page.GetInnerHtmlAsync(DynamicTable.Headers);
             int CPUColumnNumber = GetColumnNumber(columns);
 
-            var ChromeCPUText = await page.GetInnerTextAsync($"//span[text()='Chrome']/../span[{CPUColumnNumber}]");
-            var ComparisonText = await page.GetInnerTextAsync(".bg-warning");
+            var ChromeCPUText = await page.GetInnerTextAsync(DynamicTable.ChromeRowValue(CPUColumnNumber));
+            var ComparisonText = await page.GetInnerTextAsync(DynamicTable.ComparisonText);
             Assert.Equal(ComparisonText, $"Chrome CPU: {ChromeCPUText}");
 
         }
@@ -81,11 +71,31 @@ namespace PlaywrightDemo
             {
                 if (headings[i].StartsWith("CPU"))
                 {
-                    return ((i - 1) / 2) + 1;
+                    return ((i + 1) / 2);
                 }
             }
 
             return -1;
+        }
+
+
+
+        [Fact]
+        public async Task MouseOverExample()
+        {
+            var context = await Browser.NewContextAsync();
+            page = await context.NewPageAsync();
+            await page.GoToAsync(_PageUrl);
+            await page.ClickAsync(Links.MouseOver);
+            await page.ClickAsync(MouseOver.Link);
+
+            //have to exit the element to be able to click Link again
+            await page.HoverAsync(MouseOver.ClickCount);
+            await page.ClickAsync(MouseOver.Link);
+            var clickCount = await page.GetInnerTextAsync(MouseOver.ClickCount);
+            Assert.Equal("2", clickCount);
+         
+
         }
 
     }
